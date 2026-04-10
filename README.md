@@ -4,6 +4,7 @@
 - adapter le nom de la db dans le .env
 - npm install
 - lancer le docker-compose up --build
+- j'ai créé des repository, mais il est admis dans la communauté nest que c'est inutile et la logique / orm se fait dans les services directement. 
 
 ## A savoir
 
