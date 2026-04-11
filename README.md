@@ -1,10 +1,10 @@
 ### Setup projet
 
-- changer dans package.json le nom de votre application
+- changer dans package.json le nom de votre application et modifier les noms des services dans le docker compose 
 - adapter le nom de la db dans le .env
 - npm install
 - lancer le docker-compose up --build
-- j'ai créé des repository, mais il est admis dans la communauté nest que c'est inutile et la logique / orm se fait dans les services directement. 
+- j'ai créé des repository, mais il est admis dans la communauté nest que c'est inutile et la logique / orm se fait dans les services directement
 
 ## A savoir
 
