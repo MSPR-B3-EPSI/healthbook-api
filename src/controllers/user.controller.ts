@@ -1,13 +1,36 @@
-import { Controller, Post, Body } from '@nestjs/common';
-import { UserService } from '../services/user.service.js';
-import { User } from '../generated/prisma/client.js';
+import { Body, Controller, Patch, Post } from '@nestjs/common';
+import {
+  CreateCommentInput,
+  CreatePostInput,
+  LoginInput,
+  RegisterInput,
+  UpdateProfileInput,
+} from '../dto/user/user.dto.js';
 
 @Controller('user')
 export class UserController {
-  constructor(private userService: UserService) {}
+  @Post('register')
+  register(@Body() input: RegisterInput): string {
+    return 'register user';
+  }
 
-  @Post()
-  signup(@Body() userData: { name?: string; email: string }): Promise<User> {
-    return this.userService.createUser(userData);
+  @Post('login')
+  login(@Body() input: LoginInput): string {
+    return 'login user';
+  }
+
+  @Post('posts')
+  createPost(@Body() input: CreatePostInput): string {
+    return 'create post';
+  }
+
+  @Post('comments')
+  createComment(@Body() input: CreateCommentInput): string {
+    return 'create comment';
+  }
+
+  @Patch('profile')
+  updateProfile(@Body() input: UpdateProfileInput): string {
+    return 'update profile';
   }
 }
