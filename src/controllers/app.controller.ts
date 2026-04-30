@@ -1,4 +1,13 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Redirect } from '@nestjs/common';
 
 @Controller()
 export class AppController {}
+
+@Controller()
+export class RootController {
+	@Get()
+	@Redirect('/api', 302)
+	root() {
+		return;
+	}
+}
