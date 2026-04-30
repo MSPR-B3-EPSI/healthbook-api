@@ -1,24 +1,24 @@
 import { Controller, Get, Param, Post, Body, Put, Delete } from '@nestjs/common';
-import { PostService } from '../services/post.service.js';
+import { PublicationService } from '../services/publication.service.js';
 import { Post as PostModel } from '../generated/prisma/client.js';
 
-@Controller('post')
-export class PostController {
-  constructor(private postService: PostService) {}
+@Controller('publication')
+export class PublicationController {
+  constructor(private publicationService: PublicationService) {}
 
   @Get(':id')
   getPost(@Param('id') id: string): Promise<PostModel | null> {
-    return this.postService.getPost({ id: Number(id) });
+    return this.publicationService.getPost({ id: Number(id) });
   }
 
   @Get()
   getPublished(): Promise<PostModel[]> {
-    return this.postService.getPosts({ where: { published: true } });
+    return this.publicationService.getPosts({ where: { published: true } });
   }
 
   @Get('search/:query')
   getFiltered(@Param('query') query: string): Promise<PostModel[]> {
-    return this.postService.getPosts({
+    return this.publicationService.getPosts({
       where: {
         OR: [{ title: { contains: query } }, { content: { contains: query } }],
       },
@@ -29,7 +29,7 @@ export class PostController {
   create(
     @Body() data: { title: string; content?: string; authorEmail: string },
   ): Promise<PostModel> {
-    return this.postService.createPost({
+    return this.publicationService.createPost({
       title: data.title,
       content: data.content,
       author: { connect: { email: data.authorEmail } },
@@ -38,7 +38,7 @@ export class PostController {
 
   @Put(':id/publish')
   publish(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.updatePost({
+    return this.publicationService.updatePost({
       where: { id: Number(id) },
       data: { published: true },
     });
@@ -46,6 +46,6 @@ export class PostController {
 
   @Delete(':id')
   delete(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.deletePost({ id: Number(id) });
+    return this.publicationService.deletePost({ id: Number(id) });
   }
 }

@@ -3,7 +3,7 @@ import { PrismaService } from '../helpers/prisma.service.js';
 import { Post, Prisma } from '../generated/prisma/client.js';
 
 @Injectable()
-export class PostRepository {
+export class PublicationRepository {
   constructor(private prisma: PrismaService) {}
 
   findUnique(where: Prisma.PostWhereUniqueInput): Promise<Post | null> {

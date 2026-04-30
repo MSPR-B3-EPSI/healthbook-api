@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PostRepository } from '../repositories/post.repository.js';
+import { PublicationRepository } from '../repositories/publication.repository.js';
 import { Post, Prisma } from '../generated/prisma/client.js';
 
 @Injectable()
-export class PostService {
-  constructor(private postRepo: PostRepository) {}
+export class PublicationService {
+  constructor(private postRepo: PublicationRepository) {}
 
   getPost(where: Prisma.PostWhereUniqueInput): Promise<Post | null> {
     return this.postRepo.findUnique(where);
