@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { RootController } from './controllers/app.controller.js';
-import { UserModule } from './modules/user.module.js';
-import { PostModule } from './modules/post.module.js';
+import { ClsModule } from 'nestjs-cls';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot(), UserModule, PostModule],
-  controllers: [RootController],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ClsModule.forRoot({ middleware: { mount: true } }),
+    AuthModule,
+  ],
+  controllers: [],
 })
 export class AppModule {}
