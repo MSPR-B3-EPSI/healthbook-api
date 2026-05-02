@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { readdirSync, readFileSync, readlinkSync } from 'fs';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 async function freePort(port: number): Promise<void> {
   const hex = port.toString(16).padStart(4, '0').toUpperCase();
@@ -44,6 +45,7 @@ async function freePort(port: number): Promise<void> {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   const config = new DocumentBuilder()
     .setTitle('Cats example')
