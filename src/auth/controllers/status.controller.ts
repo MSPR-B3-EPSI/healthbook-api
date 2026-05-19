@@ -5,11 +5,13 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOkResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { RolesGuard } from '../guards/roles.guard.js';
 import { Roles } from '../decorators/roles.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
 import { CurrentUserService } from '../services/current-user.service.js';
+import { WhoamiResponseDto } from '../dto/whoami-response.dto.js';
 
 @Controller('/status')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -19,13 +21,15 @@ export class StatusController {
   @Get()
   @Public()
   getHello(): string {
+    // va chercher dans la db
     return 'Hello unconnected user! </br> this is data-recommendation';
   }
 
   @Get('whoami')
-  getme(): any {
+  @ApiOkResponse({ type: WhoamiResponseDto })
+  async getme(): Promise<WhoamiResponseDto> {
     return {
-      dbuser: this.currentUser.getDbUser(),
+      dbuser: await this.currentUser.getDbUser(),
       jwtuser: this.currentUser.jwtUser,
     };
   }
