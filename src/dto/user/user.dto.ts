@@ -6,17 +6,6 @@ export enum ConnectionStatus {
     Blocked = 'BLOCKED',
 }
 
-export interface RegisterInput {
-    email: string;
-    username: string;
-    passwordRaw: string;
-}
-
-export interface LoginInput {
-    email: string;
-    passwordRaw: string;
-}
-
 export interface CreatePostInput {
     content: string;
     mediaUrl?: string;
