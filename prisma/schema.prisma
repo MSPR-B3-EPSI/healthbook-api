@@ -14,10 +14,22 @@ datasource db {
 
 model User {
   keycloakId String   @id @map("keycloak_id")
-  email      String?
+  email      String?  @unique
   username   String?
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+  posts      Post[]
 
   @@map("user")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  published Boolean? @default(false)
+  author    User?    @relation(fields: [authorId], references: [keycloakId])
+  authorId  String?  @map("author_id")
+
+  @@map("post")
 }
