@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -13,11 +8,72 @@ datasource db {
 }
 
 model User {
-  keycloakId String   @id @map("keycloak_id")
-  email      String?
-  username   String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  keycloakId        String   @id @map("keycloak_id")
+  email             String?
+  username          String?
+  profilePictureUrl String?  @map("profile_picture_url")
+  displayName       String?  @map("display_name")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  posts        Post[]
+  comments     Comment[]
+  postLikes    PostLike[]
+  commentLikes CommentLike[]
 
   @@map("user")
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  authorId  String   @map("author_id")
+  content   String
+  mediaUrl  String?  @map("media_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  author   User       @relation(fields: [authorId], references: [keycloakId])
+  likes    PostLike[]
+  comments Comment[]
+
+  @@map("post")
+}
+
+model PostLike {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  postId String @map("post_id")
+
+  user User @relation(fields: [userId], references: [keycloakId])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+  @@map("post_like")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post   Post          @relation(fields: [postId], references: [id])
+  author User          @relation(fields: [authorId], references: [keycloakId])
+  likes  CommentLike[]
+
+  @@map("comment")
+}
+
+model CommentLike {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  commentId String @map("comment_id")
+
+  user    User    @relation(fields: [userId], references: [keycloakId])
+  comment Comment @relation(fields: [commentId], references: [id])
+
+  @@unique([userId, commentId])
+  @@map("comment_like")
 }
