@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "baseUrl": ".",
     "esModuleInterop": true,
     "isolatedModules": true,
     "declaration": true,
