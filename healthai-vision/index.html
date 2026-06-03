@@ -273,113 +273,132 @@
 
   <footer>Propulsé par HuggingFace · nateraw/food · NestJS + FastAPI</footer>
 
-  <script>
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const previewWrap = document.getElementById('preview-wrap');
-    const previewImg = document.getElementById('preview-img');
-    const fileName = document.getElementById('file-name');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const loader = document.getElementById('loader');
-    const results = document.getElementById('results');
-    const predictionsList = document.getElementById('predictions-list');
-    const errorBox = document.getElementById('error-box');
+  <script type="module">
+    import Keycloak from './keycloak.js';
 
-    let selectedFile = null;
-
-    function showPreview(file) {
-      selectedFile = file;
-      const url = URL.createObjectURL(file);
-      previewImg.src = url;
-      fileName.textContent = file.name;
-      previewWrap.style.display = 'block';
-      analyzeBtn.style.display = 'block';
-      results.style.display = 'none';
-      errorBox.style.display = 'none';
-      predictionsList.innerHTML = '';
-    }
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) showPreview(e.target.files[0]);
+    const keycloak = new Keycloak({
+      url: 'http://localhost:8080',
+      realm: 'master',
+      clientId: 'healthai-client',
     });
 
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
+    keycloak.init({ onLoad: 'login-required' }).then(() => {
+      initPage();
+    }).catch((err) => {
+      document.body.innerHTML = '<p style="color:red;padding:2rem">Erreur Keycloak : ' + err + '</p>';
     });
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('drag-over');
-    });
+    function initPage() {
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('file-input');
+      const previewWrap = document.getElementById('preview-wrap');
+      const previewImg = document.getElementById('preview-img');
+      const fileName = document.getElementById('file-name');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const loader = document.getElementById('loader');
+      const results = document.getElementById('results');
+      const predictionsList = document.getElementById('predictions-list');
+      const errorBox = document.getElementById('error-box');
 
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) showPreview(file);
-    });
+      let selectedFile = null;
 
-    analyzeBtn.addEventListener('click', async () => {
-      if (!selectedFile) return;
-
-      analyzeBtn.disabled = true;
-      loader.style.display = 'block';
-      results.style.display = 'none';
-      errorBox.style.display = 'none';
-
-      const form = new FormData();
-      form.append('image', selectedFile);
-
-      try {
-        const res = await fetch('http://localhost:3000/analyze', {
-          method: 'POST',
-          body: form,
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
-          throw new Error(err.message || `Erreur HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        renderResults(data.predictions);
-      } catch (err) {
-        errorBox.textContent = '⚠️ ' + err.message;
-        errorBox.style.display = 'block';
-      } finally {
-        loader.style.display = 'none';
-        analyzeBtn.disabled = false;
+      function showPreview(file) {
+        selectedFile = file;
+        const url = URL.createObjectURL(file);
+        previewImg.src = url;
+        fileName.textContent = file.name;
+        previewWrap.style.display = 'block';
+        analyzeBtn.style.display = 'block';
+        results.style.display = 'none';
+        errorBox.style.display = 'none';
+        predictionsList.innerHTML = '';
       }
-    });
 
-    function renderResults(predictions) {
-      predictionsList.innerHTML = '';
-
-      predictions.forEach((p, i) => {
-        const pct = (p.score * 100).toFixed(1);
-        const label = p.label.replace(/_/g, ' ');
-
-        const item = document.createElement('div');
-        item.className = 'prediction-item' + (i === 0 ? ' top-result' : '');
-
-        item.innerHTML = `
-          <div class="prediction-header">
-            <span class="prediction-label">${i === 0 ? '🥇 ' : ''}${label}</span>
-            <span class="prediction-score">${pct}%</span>
-          </div>
-          <div class="bar-track">
-            <div class="bar-fill" style="width: 0%"></div>
-          </div>
-        `;
-
-        predictionsList.appendChild(item);
-
-        requestAnimationFrame(() => {
-          item.querySelector('.bar-fill').style.width = pct + '%';
-        });
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) showPreview(e.target.files[0]);
       });
 
-      results.style.display = 'block';
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) showPreview(file);
+      });
+
+      analyzeBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        analyzeBtn.disabled = true;
+        loader.style.display = 'block';
+        results.style.display = 'none';
+        errorBox.style.display = 'none';
+
+        try {
+          await keycloak.updateToken(30);
+
+          const form = new FormData();
+          form.append('image', selectedFile);
+
+          const res = await fetch('http://localhost:3000/analyze', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + keycloak.token },
+            body: form,
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+            throw new Error(err.message || `Erreur HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          renderResults(data.predictions);
+        } catch (err) {
+          errorBox.textContent = '⚠️ ' + err.message;
+          errorBox.style.display = 'block';
+        } finally {
+          loader.style.display = 'none';
+          analyzeBtn.disabled = false;
+        }
+      });
+
+      function renderResults(predictions) {
+        predictionsList.innerHTML = '';
+
+        predictions.forEach((p, i) => {
+          const pct = (p.score * 100).toFixed(1);
+          const label = p.label.replace(/_/g, ' ');
+
+          const item = document.createElement('div');
+          item.className = 'prediction-item' + (i === 0 ? ' top-result' : '');
+
+          item.innerHTML = `
+            <div class="prediction-header">
+              <span class="prediction-label">${i === 0 ? '🥇 ' : ''}${label}</span>
+              <span class="prediction-score">${pct}%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: 0%"></div>
+            </div>
+          `;
+
+          predictionsList.appendChild(item);
+
+          requestAnimationFrame(() => {
+            item.querySelector('.bar-fill').style.width = pct + '%';
+          });
+        });
+
+        results.style.display = 'block';
+      }
     }
   </script>
 
