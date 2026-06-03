@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  nestjs-api:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./nestjs-api:/app
+      - node_modules:/app/node_modules
+    command: sh -c "npm install && node_modules/.bin/ts-node src/main.ts"
+    ports:
+      - "3000:3000"
+    environment:
+      - AI_SERVICE_URL=http://ai-service:8000
+    networks:
+      - app-network
+    depends_on:
+      - ai-service
+
+  ai-service:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./ai-service:/app
+      - hf-cache:/root/.cache/huggingface
+    command: sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  node_modules:
+  hf-cache:

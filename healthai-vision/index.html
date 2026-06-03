@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealthAI Vision</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2e3148;
+      --accent: #6c63ff;
+      --accent-light: #8b85ff;
+      --text: #e8e9f0;
+      --muted: #6b7280;
+      --success: #22c55e;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-light), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    #drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.06);
+    }
+
+    #drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    #drop-zone p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    #drop-zone strong {
+      color: var(--accent-light);
+    }
+
+    /* Preview */
+    #preview-wrap {
+      display: none;
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+
+    #preview-img {
+      max-width: 100%;
+      max-height: 260px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      object-fit: contain;
+    }
+
+    #file-name {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* Button */
+    #analyze-btn {
+      display: none;
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 0.8rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    #analyze-btn:hover { background: var(--accent-light); }
+    #analyze-btn:active { transform: scale(0.98); }
+    #analyze-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+    /* Loader */
+    #loader {
+      display: none;
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 0.75rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    #results {
+      display: none;
+      margin-top: 1.5rem;
+    }
+
+    #results h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 1rem;
+    }
+
+    .prediction-item {
+      margin-bottom: 0.85rem;
+    }
+
+    .prediction-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .prediction-label {
+      font-weight: 500;
+      font-size: 0.95rem;
+      text-transform: capitalize;
+    }
+
+    .prediction-score {
+      font-size: 0.85rem;
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+
+    .bar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: 99px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .top-result {
+      background: rgba(108, 99, 255, 0.08);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    /* Error */
+    #error-box {
+      display: none;
+      margin-top: 1.5rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: #fca5a5;
+    }
+
+    footer {
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🥗 HealthAI Vision</h1>
+    <p>Analyse nutritionnelle par intelligence artificielle</p>
+  </header>
+
+  <div class="card">
+    <div id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" />
+      <div class="drop-icon">📸</div>
+      <p><strong>Glissez une image</strong> ici ou cliquez pour en choisir une</p>
+      <p style="margin-top:0.3rem">PNG, JPG, WEBP — max 10 Mo</p>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview-img" alt="Aperçu" />
+      <p id="file-name"></p>
+    </div>
+
+    <button id="analyze-btn">Analyser l'image</button>
+
+    <div id="loader">
+      <div class="spinner"></div>
+      Analyse en cours…
+    </div>
+
+    <div id="error-box"></div>
+
+    <div id="results">
+      <h2>Top 5 aliments détectés</h2>
+      <div id="predictions-list"></div>
+    </div>
+  </div>
+
+  <footer>Propulsé par HuggingFace · nateraw/food · NestJS + FastAPI</footer>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const previewWrap = document.getElementById('preview-wrap');
+    const previewImg = document.getElementById('preview-img');
+    const fileName = document.getElementById('file-name');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const loader = document.getElementById('loader');
+    const results = document.getElementById('results');
+    const predictionsList = document.getElementById('predictions-list');
+    const errorBox = document.getElementById('error-box');
+
+    let selectedFile = null;
+
+    function showPreview(file) {
+      selectedFile = file;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      fileName.textContent = file.name;
+      previewWrap.style.display = 'block';
+      analyzeBtn.style.display = 'block';
+      results.style.display = 'none';
+      errorBox.style.display = 'none';
+      predictionsList.innerHTML = '';
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) showPreview(e.target.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) showPreview(file);
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      analyzeBtn.disabled = true;
+      loader.style.display = 'block';
+      results.style.display = 'none';
+      errorBox.style.display = 'none';
+
+      const form = new FormData();
+      form.append('image', selectedFile);
+
+      try {
+        const res = await fetch('http://localhost:3000/analyze', {
+          method: 'POST',
+          body: form,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: `Erreur HTTP ${res.status}` }));
+          throw new Error(err.message || `Erreur HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        renderResults(data.predictions);
+      } catch (err) {
+        errorBox.textContent = '⚠️ ' + err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        loader.style.display = 'none';
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    function renderResults(predictions) {
+      predictionsList.innerHTML = '';
+
+      predictions.forEach((p, i) => {
+        const pct = (p.score * 100).toFixed(1);
+        const label = p.label.replace(/_/g, ' ');
+
+        const item = document.createElement('div');
+        item.className = 'prediction-item' + (i === 0 ? ' top-result' : '');
+
+        item.innerHTML = `
+          <div class="prediction-header">
+            <span class="prediction-label">${i === 0 ? '🥇 ' : ''}${label}</span>
+            <span class="prediction-score">${pct}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: 0%"></div>
+          </div>
+        `;
+
+        predictionsList.appendChild(item);
+
+        requestAnimationFrame(() => {
+          item.querySelector('.bar-fill').style.width = pct + '%';
+        });
+      });
+
+      results.style.display = 'block';
+    }
+  </script>
+
+</body>
+</html>
