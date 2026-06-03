@@ -6,11 +6,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AnalyzeService } from './analyze.service.js';
+import { FoodImageAnalyzerService } from './food-image-analyzer.service.js';
 
 @Controller()
-export class AnalyzeController {
-  constructor(private readonly analyzeService: AnalyzeService) {}
+export class FoodImageAnalyzerController {
+  constructor(private readonly foodImageAnalyzerService: FoodImageAnalyzerService) {}
 
   @Post('analyze')
   @UseInterceptors(FileInterceptor('image'))
@@ -18,6 +18,6 @@ export class AnalyzeController {
     if (!file) {
       throw new BadRequestException('Champ "image" manquant dans le formulaire');
     }
-    return this.analyzeService.predict(file);
+    return this.foodImageAnalyzerService.predict(file);
   }
 }

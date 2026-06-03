@@ -3,7 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 
 @Injectable()
-export class AnalyzeService {
+export class FoodImageAnalyzerService {
   private readonly aiServiceUrl =
     process.env.AI_SERVICE_URL || 'http://ai-service:8000';
 
