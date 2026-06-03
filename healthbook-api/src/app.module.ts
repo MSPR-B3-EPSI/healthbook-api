@@ -7,7 +7,7 @@ import { FoodImageAnalyzerModule } from './food-image-analyzer/food-image-analyz
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ClsModule.forRoot({ middleware: { mount: true } }),
+    ClsModule.forRoot({ global: true, middleware: { mount: true } }),
     AuthModule,
     FoodImageAnalyzerModule,
   ],

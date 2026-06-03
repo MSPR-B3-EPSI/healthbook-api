@@ -1,29 +1,61 @@
 services:
+
   healthbook-db:
     image: postgres:15
     container_name: healthbook_db
     restart: always
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: healthbook
+      POSTGRES_PASSWORD: healthbook
+      POSTGRES_DB: healthbook
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U healthbook -d healthbook"]
       interval: 5s
       timeout: 5s
       retries: 5
     ports:
-      - '5432:5432'
+      - '5434:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
 
-  healthbook-api:
-    build: .
-    container_name: healthbook_api
-    working_dir: /usr/src/app
-    env_file:
-      - .env
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: healthbook_keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - '8080:8080'
+
+  ai-service:
+    image: python:3.11-slim
+    container_name: healthbook_ai_service
+    working_dir: /app
     volumes:
-      - ./:/usr/src/app
-      - /usr/src/app/node_modules
+      - ../healthai-vision/ai-service:/app
+      - huggingface_cache:/root/.cache/huggingface
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             uvicorn main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - '8000:8000'
+
+  healthbook-api:
+    image: node:20-alpine
+    container_name: healthbook_api
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run start:dev"
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/master
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/master/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: account
+      AI_SERVICE_URL: http://ai-service:8000
     ports:
       - '3000:3000'
     depends_on:
@@ -32,3 +64,4 @@ services:
 
 volumes:
   db_data:
+  huggingface_cache:

@@ -4,11 +4,14 @@ import {
   UploadedFile,
   UseInterceptors,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { FoodImageAnalyzerService } from './food-image-analyzer.service.js';
 
 @Controller()
+@UseGuards(JwtAuthGuard)
 export class FoodImageAnalyzerController {
   constructor(private readonly foodImageAnalyzerService: FoodImageAnalyzerService) {}
 
