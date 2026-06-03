@@ -21,10 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         jwksRequestsPerMinute: 5,
         jwksUri,
       }),
-      jwtFromRequest: (req: Request) => {
-        const header: string | undefined = req.headers['authorization'] as
-          | string
-          | undefined;
+      jwtFromRequest: (req: import('express').Request) => {
+        const header: string | undefined = req.headers['authorization'];
         if (!header) return null;
         return header.startsWith('Bearer ')
           ? header.replace('Bearer ', '')

@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { readdirSync, readFileSync, readlinkSync } from 'fs';
@@ -46,13 +47,15 @@ async function freePort(port: number): Promise<void> {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalPipes(new ValidationPipe());
+  app.enableCors();
 
   const config = new DocumentBuilder()
-    .setTitle('Cats example')
-    .setDescription('The cats API description')
+    .setTitle('HealthAI Vision — Image Analyzer')
+    .setDescription("Service d'analyse d'images alimentaires via IA")
     .setVersion('1.0')
-    .addTag('cats')
-    .addServer('/api')
+    .addBearerAuth()
+    .addServer('/ai')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
