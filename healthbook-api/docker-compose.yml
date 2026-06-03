@@ -1,0 +1,34 @@
+services:
+  healthbook-db:
+    image: postgres:15
+    container_name: healthbook_db
+    restart: always
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  healthbook-api:
+    build: .
+    container_name: healthbook_api
+    working_dir: /usr/src/app
+    env_file:
+      - .env
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '3000:3000'
+    depends_on:
+      healthbook-db:
+        condition: service_healthy
+
+volumes:
+  db_data:
