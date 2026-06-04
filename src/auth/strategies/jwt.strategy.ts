@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
+import type { Request } from 'express';
 import type { JwtPayload } from '../types/jwt-payload.type.js';
 
 @Injectable()
