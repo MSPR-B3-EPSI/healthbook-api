@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../helpers/prisma.service.js';
 import type { JwtPayload } from '../types/jwt-payload.type.js';
-import { UserModel } from 'src/generated/prisma/models.js';
+import { UserModel } from '../../generated/prisma/models.js';
 
 @Injectable()
 export class CurrentUserService {
@@ -17,8 +17,8 @@ export class CurrentUserService {
     return this.cls.get<JwtPayload>('user');
   }
 
-  async getDbUser() {
-    const cached = this.cls.get<UserModel>('dbUser');
+  async getDbUser(): Promise<UserModel> {
+    const cached: UserModel | undefined = this.cls.get('dbUser');
     if (cached !== undefined) return cached;
 
     const { sub, email, preferred_username } = this.jwtUser;

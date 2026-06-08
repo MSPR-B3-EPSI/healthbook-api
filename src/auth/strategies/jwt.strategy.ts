@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
+import type { Request } from 'express';
 import type { JwtPayload } from '../types/jwt-payload.type.js';
 
 @Injectable()
@@ -22,9 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         jwksUri,
       }),
       jwtFromRequest: (req: Request) => {
-        const header: string | undefined = req.headers['authorization'] as
-          | string
-          | undefined;
+        const header: string | undefined = req.headers['authorization'];
         if (!header) return null;
         return header.startsWith('Bearer ')
           ? header.replace('Bearer ', '')
