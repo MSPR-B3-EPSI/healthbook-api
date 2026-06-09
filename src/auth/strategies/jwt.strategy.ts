@@ -23,9 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         jwksUri,
       }),
       jwtFromRequest: (req: Request) => {
-        const header: string | undefined = req.headers['authorization'] as
-          | string
-          | undefined;
+        const header: string | undefined = req.headers['authorization'];
         if (!header) return null;
         return header.startsWith('Bearer ')
           ? header.replace('Bearer ', '')
