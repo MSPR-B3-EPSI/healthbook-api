@@ -39,4 +39,16 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Fichiers de test : on relâche les règles type-checked qui produisent
+    // des faux-positifs classiques avec Jest (mocks, prototypes, req.body any).
+    files: ['**/*.spec.ts', 'test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
 );
