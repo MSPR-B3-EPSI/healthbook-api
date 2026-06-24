@@ -15,10 +15,12 @@
     "prelint": "prisma generate",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
+    "test:unit": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:ci": "jest --coverage --ci --runInBand",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
     "db:reset": "bash scripts/db-reset.sh"
   },
   "dependencies": {
@@ -29,15 +31,15 @@
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.2",
-    "jwks-rsa": "^3.1.0",
-    "nestjs-cls": "^6.2.0",
-    "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "csv-stringify": "^6.7.0",
+    "jwks-rsa": "^3.1.0",
+    "nestjs-cls": "^6.2.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -58,6 +60,7 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jest": "^30.0.0",
+    "jest-junit": "^16.0.0",
     "prettier": "^3.4.2",
     "prisma": "^7.7.0",
     "source-map-support": "^0.5.21",
@@ -80,10 +83,57 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "services/post.service.ts",
+      "controllers/post.controller.ts",
+      "auth/guards/roles.guard.ts",
+      "auth/services/current-user.service.ts"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/generated/",
+      "\\.module\\.ts$",
+      "\\.dto\\.ts$",
+      "/dto/",
+      "main\\.ts$",
+      "\\.enum\\.ts$",
+      "\\.decorator\\.ts$",
+      "interceptors/"
     ],
     "coverageDirectory": "../coverage",
+    "coverageReporters": [
+      "text",
+      "text-summary",
+      "lcov",
+      "html",
+      "cobertura"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 80,
+        "branches": 75,
+        "functions": 80,
+        "lines": 80
+      },
+      "src/services/post.service.ts": {
+        "statements": 95,
+        "branches": 90,
+        "lines": 95
+      }
+    },
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "reports/junit",
+          "outputName": "unit.xml"
+        }
+      ]
+    ],
     "testEnvironment": "node"
   }
 }
