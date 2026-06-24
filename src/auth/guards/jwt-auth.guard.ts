@@ -15,30 +15,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    console.log('jwtAuth canactivate');
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       ctx.getHandler(),
       ctx.getClass(),
     ]);
     if (isPublic) return true;
-    const req = ctx
-      .switchToHttp()
-      .getRequest<{ headers: Record<string, string> }>();
-    const authHeader = req.headers['authorization'];
-    console.log('Authorization header prefix:', authHeader?.substring(0, 15));
-    let result: boolean;
-    try {
-      result = await (super.canActivate(ctx) as Promise<boolean>);
-    } catch (err: unknown) {
-      console.log('JWT validation error:', (err as Error).message);
 
-      throw err;
-    }
-    console.log('result:', result);
+    const result = await (super.canActivate(ctx) as Promise<boolean>);
     if (result) {
-      console.log('result exist :', result);
-      const request = ctx.switchToHttp().getRequest<{ user: JwtPayload }>();
-      this.cls.set('user', request.user);
+      const req = ctx.switchToHttp().getRequest<{ user: JwtPayload }>();
+      this.cls.set('user', req.user);
     }
     return result;
   }
