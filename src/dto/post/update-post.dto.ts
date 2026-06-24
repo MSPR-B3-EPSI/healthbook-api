@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 export class UpdatePostDto {
   @IsOptional()
@@ -10,8 +10,4 @@ export class UpdatePostDto {
   @IsString()
   @Length(1, 2000)
   content?: string;
-
-  @IsOptional()
-  @IsUrl()
-  mediaUrl?: string;
 }

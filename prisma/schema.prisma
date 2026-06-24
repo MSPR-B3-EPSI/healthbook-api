@@ -29,7 +29,7 @@ model Post {
   title     String
   authorId  String   @map("author_id")
   content   String
-  mediaUrl  String?  @map("media_url")
+  mediaKey  String?  @map("media_key")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

@@ -2,6 +2,7 @@ import { PostController } from './post.controller.js';
 import { PostService } from '../services/post.service.js';
 import { CurrentUserService } from '../auth/services/current-user.service.js';
 import { PostWithCounts } from '../repositories/post.repository.js';
+import { StorageService } from '../storage/storage.service.js';
 import { UserModel } from '../generated/prisma/models.js';
 
 function makePost(overrides: Partial<PostWithCounts> = {}): PostWithCounts {
@@ -10,7 +11,7 @@ function makePost(overrides: Partial<PostWithCounts> = {}): PostWithCounts {
     title: 'Titre',
     authorId: 'user-1',
     content: 'Contenu',
-    mediaUrl: null,
+    mediaKey: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     _count: { likes: 5, comments: 2 },
@@ -22,6 +23,7 @@ describe('PostController', () => {
   let controller: PostController;
   let service: jest.Mocked<PostService>;
   let currentUser: jest.Mocked<CurrentUserService>;
+  let storage: jest.Mocked<StorageService>;
 
   beforeEach(() => {
     service = {
@@ -29,6 +31,8 @@ describe('PostController', () => {
       getOne: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      setMedia: jest.fn(),
+      clearMedia: jest.fn(),
       toggleLike: jest.fn(),
       remove: jest.fn(),
     } as unknown as jest.Mocked<PostService>;
@@ -39,7 +43,12 @@ describe('PostController', () => {
         .mockResolvedValue({ keycloakId: 'user-1' } as UserModel),
     } as unknown as jest.Mocked<CurrentUserService>;
 
-    controller = new PostController(service, currentUser);
+    storage = {
+      // By default no presigned URL so existing assertions see mediaKey: null.
+      presign: jest.fn().mockResolvedValue(null),
+    } as unknown as jest.Mocked<StorageService>;
+
+    controller = new PostController(service, currentUser, storage);
   });
 
   describe('getPosts', () => {
@@ -127,6 +136,38 @@ describe('PostController', () => {
       const result = await controller.updatePost('post-1', { title: 'Maj' });
 
       expect(result).toMatchObject({ title: 'Maj' });
+    });
+  });
+
+  describe('media', () => {
+    const file = { originalname: 'i.png' } as never;
+
+    it('expose l’URL présignée dans mediaUrl', async () => {
+      service.getOne.mockResolvedValue(makePost({ mediaKey: 'posts/x.png' }));
+      storage.presign.mockResolvedValue('https://signed.example/x.png');
+
+      const result = await controller.getPost(
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      );
+
+      expect(storage.presign).toHaveBeenCalledWith('posts/x.png');
+      expect(result.mediaUrl).toBe('https://signed.example/x.png');
+    });
+
+    it('uploadMedia délègue le fichier au service', async () => {
+      service.setMedia.mockResolvedValue(makePost({ mediaKey: 'posts/n.png' }));
+
+      await controller.uploadMedia('post-1', file);
+
+      expect(service.setMedia).toHaveBeenCalledWith('post-1', 'user-1', file);
+    });
+
+    it('deleteMedia délègue au service', async () => {
+      service.clearMedia.mockResolvedValue(makePost({ mediaKey: null }));
+
+      await controller.deleteMedia('post-1');
+
+      expect(service.clearMedia).toHaveBeenCalledWith('post-1', 'user-1');
     });
   });
 
