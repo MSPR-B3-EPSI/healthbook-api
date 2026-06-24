@@ -9,9 +9,7 @@ export class CurrentUserService {
   constructor(
     private readonly cls: ClsService,
     private readonly prisma: PrismaService,
-  ) {
-    console.log('user ??');
-  }
+  ) {}
 
   get jwtUser(): JwtPayload {
     return this.cls.get<JwtPayload>('user');
