@@ -1,0 +1,70 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  unit:
+    name: Tests unitaires + couverture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run test:ci
+      - name: Upload coverage & JUnit (unit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-reports
+          path: |
+            coverage/
+            reports/junit/unit.xml
+
+  e2e:
+    name: Tests end-to-end
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: healthbook_test
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U test -d healthbook_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/healthbook_test?schema=public
+      # Valeurs factices : JwtAuthGuard est remplacé en e2e, mais JwtStrategy
+      # lit ces variables via getOrThrow au démarrage du module.
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/test
+      KEYCLOAK_AUDIENCE: healthbook-api
+      KEYCLOAK_JWKS_URI: http://localhost:8080/realms/test/protocol/openid-connect/certs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run test:e2e
+      - name: Upload JUnit (e2e)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports
+          path: reports/junit/e2e.xml
