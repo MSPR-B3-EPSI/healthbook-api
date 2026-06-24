@@ -9,6 +9,8 @@ import { PostService } from '../services/post.service.js';
 import { PostRepository } from '../repositories/post.repository.js';
 import { CommentService } from '../services/comment.service.js';
 import { CommentRepository } from '../repositories/comment.repository.js';
+import { UserService } from '../services/user.service.js';
+import { UserRepository } from '../repositories/user.repository.js';
 
 @Module({
   imports: [AuthModule, PrismaModule, StorageModule],
@@ -18,6 +20,8 @@ import { CommentRepository } from '../repositories/comment.repository.js';
     PostRepository,
     CommentService,
     CommentRepository,
+    UserService,
+    UserRepository,
   ],
 })
 export class HealthbookModule {}
