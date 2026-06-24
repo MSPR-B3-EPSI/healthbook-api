@@ -11,7 +11,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -25,7 +25,7 @@ services:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
     ports:
-      - '3000:3000'
+      - '3001:3000'
     depends_on:
       healthbook-db:
         condition: service_healthy
