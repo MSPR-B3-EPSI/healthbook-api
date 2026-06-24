@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotImplementedException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -17,42 +16,67 @@ import { CurrentUserService } from '../auth/services/current-user.service.js';
 import { CreatePostDto } from '../dto/post/create-post.dto.js';
 import { GetPostsQueryDto } from '../dto/post/get-posts-query.dto.js';
 import { UpdatePostDto } from '../dto/post/update-post.dto.js';
+import { PostService } from '../services/post.service.js';
+import { PostWithCounts } from '../repositories/post.repository.js';
 
 @Controller('post')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PostController {
-  constructor(private readonly currentUser: CurrentUserService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly currentUser: CurrentUserService,
+  ) {}
 
   @Get()
-  getPosts(@Query() _query: GetPostsQueryDto) {
-    throw new NotImplementedException();
+  async getPosts(@Query() query: GetPostsQueryDto) {
+    const { items, total, page, limit } = await this.postService.list(query);
+    return { data: items.map((p) => this.toResponse(p)), total, page, limit };
   }
 
   @Get(':id')
-  getPost(@Param('id', ParseUUIDPipe) _id: string) {
-    throw new NotImplementedException();
+  async getPost(@Param('id', ParseUUIDPipe) id: string) {
+    return this.toResponse(await this.postService.getOne(id));
   }
 
   @Post()
-  createPost(@Body() _dto: CreatePostDto) {
-    throw new NotImplementedException();
+  async createPost(@Body() dto: CreatePostDto) {
+    const { keycloakId } = await this.currentUser.getDbUser();
+    return this.toResponse(await this.postService.create(keycloakId, dto));
   }
 
   @Patch(':id')
-  updatePost(
-    @Param('id', ParseUUIDPipe) _id: string,
-    @Body() _dto: UpdatePostDto,
+  async updatePost(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdatePostDto,
   ) {
-    throw new NotImplementedException();
+    const { keycloakId } = await this.currentUser.getDbUser();
+    return this.toResponse(await this.postService.update(id, keycloakId, dto));
   }
 
   @Post('like/:id')
-  likePost(@Param('id', ParseUUIDPipe) _id: string) {
-    throw new NotImplementedException();
+  async likePost(@Param('id', ParseUUIDPipe) id: string) {
+    const { keycloakId } = await this.currentUser.getDbUser();
+    return this.postService.toggleLike(id, keycloakId);
   }
 
   @Delete(':id')
-  deletePost(@Param('id', ParseUUIDPipe) _id: string) {
-    throw new NotImplementedException();
+  async deletePost(@Param('id', ParseUUIDPipe) id: string) {
+    const { keycloakId } = await this.currentUser.getDbUser();
+    await this.postService.remove(id, keycloakId);
+    return { deleted: true };
+  }
+
+  private toResponse(p: PostWithCounts) {
+    return {
+      id: p.id,
+      title: p.title,
+      content: p.content,
+      mediaUrl: p.mediaUrl,
+      authorId: p.authorId,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      likesCount: p._count.likes,
+      commentsCount: p._count.comments,
+    };
   }
 }
