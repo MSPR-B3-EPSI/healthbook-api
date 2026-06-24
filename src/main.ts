@@ -44,16 +44,46 @@ async function freePort(port: number): Promise<void> {
   }
 }
 
+const MEDIA_DOCS = `
+## Post media
+
+Each post can carry **one** optional media file (image). Media is **not** sent in
+the post's JSON body — it is managed through dedicated multipart endpoints and
+stored in object storage (MinIO), not on the API server.
+
+### Lifecycle
+1. **Create the post** with \`POST /post\` (JSON, no media).
+2. **Attach media** with \`POST /post/{id}/media\` — \`multipart/form-data\`, field
+   name \`file\`. Uploading again **replaces** the previous file.
+3. **Remove media** with \`DELETE /post/{id}/media\`.
+
+Deleting a post also deletes its stored media object.
+
+### Constraints
+- Allowed types: \`image/png\`, \`image/jpeg\`, \`image/webp\`, \`image/gif\`.
+- Max size: **5 MB**. Violations return **400**.
+- Only the post's author may upload/replace/delete its media (**403** otherwise).
+
+### Reading media — \`mediaUrl\`
+Post responses expose \`mediaUrl\`:
+- \`null\` when the post has no media.
+- Otherwise a **short-lived presigned URL** (valid ~15 min) served through the
+  gateway. Fetch the bytes directly from that URL — no auth header needed, the
+  signature carries the grant. The URL is re-generated on every read, so do not
+  cache it past its expiry; re-fetch the post to get a fresh one.
+`;
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
   const config = new DocumentBuilder()
-    .setTitle('Cats example')
-    .setDescription('The cats API description')
+    .setTitle('Healthbook API')
+    .setDescription(MEDIA_DOCS)
     .setVersion('1.0')
-    .addTag('cats')
+    .addBearerAuth()
+    .addTag('post', 'Posts and their media attachments')
     .addServer('/api')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
