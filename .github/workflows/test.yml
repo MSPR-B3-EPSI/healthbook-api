@@ -52,6 +52,14 @@ jobs:
       KEYCLOAK_ISSUER: http://localhost:8080/realms/test
       KEYCLOAK_AUDIENCE: healthbook-api
       KEYCLOAK_JWKS_URI: http://localhost:8080/realms/test/protocol/openid-connect/certs
+      # Valeurs factices : StorageService les lit via getOrThrow au démarrage.
+      # Aucun MinIO en e2e — les posts créés n'ont pas de média, donc presign(null)
+      # court-circuite sans appel réseau.
+      MINIO_ENDPOINT: http://localhost:9000
+      MINIO_PUBLIC_ENDPOINT: http://localhost:9000
+      MINIO_ACCESS_KEY: test
+      MINIO_SECRET_KEY: testtest
+      MINIO_BUCKET: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
