@@ -26,6 +26,7 @@ model User {
 
 model Post {
   id        String   @id @default(uuid())
+  title     String
   authorId  String   @map("author_id")
   content   String
   mediaUrl  String?  @map("media_url")
