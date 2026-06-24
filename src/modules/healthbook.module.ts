@@ -7,10 +7,17 @@ import { PostController } from '../controllers/post.controller.js';
 import { UserController } from '../controllers/user.controller.js';
 import { PostService } from '../services/post.service.js';
 import { PostRepository } from '../repositories/post.repository.js';
+import { CommentService } from '../services/comment.service.js';
+import { CommentRepository } from '../repositories/comment.repository.js';
 
 @Module({
   imports: [AuthModule, PrismaModule, StorageModule],
   controllers: [CommentController, PostController, UserController],
-  providers: [PostService, PostRepository],
+  providers: [
+    PostService,
+    PostRepository,
+    CommentService,
+    CommentRepository,
+  ],
 })
 export class HealthbookModule {}
