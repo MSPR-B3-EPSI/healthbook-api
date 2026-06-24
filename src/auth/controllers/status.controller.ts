@@ -11,12 +11,17 @@ import { RolesGuard } from '../guards/roles.guard.js';
 import { Roles } from '../decorators/roles.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
 import { CurrentUserService } from '../services/current-user.service.js';
+import { StorageService } from '../../storage/storage.service.js';
 import { WhoamiResponseDto } from '../dto/whoami-response.dto.js';
+import { UserResponseDto } from '../../dto/user/user-response.dto.js';
 
 @Controller('/status')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StatusController {
-  constructor(private readonly currentUser: CurrentUserService) {}
+  constructor(
+    private readonly currentUser: CurrentUserService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Get()
   @Public()
@@ -28,8 +33,12 @@ export class StatusController {
   @Get('whoami')
   @ApiOkResponse({ type: WhoamiResponseDto })
   async getme(): Promise<WhoamiResponseDto> {
+    const dbUser = await this.currentUser.getDbUser();
     return {
-      dbuser: await this.currentUser.getDbUser(),
+      dbuser: UserResponseDto.from(
+        dbUser,
+        await this.storage.presign(dbUser.profileMediaKey),
+      ),
       jwtuser: this.currentUser.jwtUser,
     };
   }
