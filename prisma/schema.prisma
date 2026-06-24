@@ -11,7 +11,7 @@ model User {
   keycloakId        String   @id @map("keycloak_id")
   email             String?
   username          String?
-  profilePictureUrl String?  @map("profile_picture_url")
+  profileMediaKey   String?  @map("profile_media_key")
   displayName       String?  @map("display_name")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
