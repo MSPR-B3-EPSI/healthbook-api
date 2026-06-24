@@ -117,17 +117,18 @@ describe('PostController (e2e)', () => {
   });
 
   describe('POST /post', () => {
-    it('crée un post dont l’auteur est l’utilisateur courant', async () => {
+    it('crée un post dont l’auteur est l’utilisateur courant, sans média', async () => {
       const res = await request(app.getHttpServer())
         .post('/post')
-        .send({ title: 'T', content: 'C', mediaUrl: 'https://ex.com/i.png' })
+        .send({ title: 'T', content: 'C' })
         .expect(201);
 
       expect(res.body.authorId).toBe(TEST_USER.sub);
-      expect(res.body.mediaUrl).toBe('https://ex.com/i.png');
+      // Le média se gère via POST /post/:id/media, pas à la création.
+      expect(res.body.mediaUrl).toBeNull();
     });
 
-    it('renvoie 400 si le DTO est invalide (titre vide, mediaUrl non URL)', async () => {
+    it('renvoie 400 si le DTO est invalide (titre vide)', async () => {
       await request(app.getHttpServer())
         .post('/post')
         .send({ title: '', content: 'C' })
@@ -135,7 +136,7 @@ describe('PostController (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/post')
-        .send({ title: 'T', content: 'C', mediaUrl: 'pas-une-url' })
+        .send({ content: 'C' })
         .expect(400);
     });
   });
