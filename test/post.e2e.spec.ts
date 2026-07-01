@@ -74,6 +74,8 @@ describe('PostController (e2e)', () => {
         authorId: TEST_USER.sub,
         likesCount: 0,
         commentsCount: 0,
+        likedByMe: false,
+        author: { keycloakId: TEST_USER.sub, username: 'tester' },
       });
     });
 
@@ -184,6 +186,22 @@ describe('PostController (e2e)', () => {
         .post(`/post/like/${id}`)
         .expect(201);
       expect(unliked.body).toEqual({ liked: false, likesCount: 0 });
+    });
+
+    it('likedByMe est propre à l’utilisateur courant', async () => {
+      const id = await createPost();
+      await request(app.getHttpServer()).post(`/post/like/${id}`).expect(201);
+
+      const mine = await request(app.getHttpServer())
+        .get(`/post/${id}`)
+        .expect(200);
+      expect(mine.body.likedByMe).toBe(true);
+
+      FakeJwtAuthGuard.setCurrentUser(OTHER_USER);
+      const other = await request(app.getHttpServer())
+        .get(`/post/${id}`)
+        .expect(200);
+      expect(other.body.likedByMe).toBe(false);
     });
 
     it('renvoie 404 pour un id inconnu', async () => {

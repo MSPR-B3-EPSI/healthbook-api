@@ -15,6 +15,13 @@ function makePost(overrides: Partial<PostWithCounts> = {}): PostWithCounts {
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     _count: { likes: 5, comments: 2 },
+    author: {
+      keycloakId: 'user-1',
+      username: 'tester',
+      displayName: 'Testeur',
+      profileMediaKey: null,
+    },
+    likes: [],
     ...overrides,
   } as PostWithCounts;
 }
@@ -62,7 +69,7 @@ describe('PostController', () => {
 
       const result = await controller.getPosts({});
 
-      expect(service.list).toHaveBeenCalledWith({});
+      expect(service.list).toHaveBeenCalledWith({}, 'user-1');
       expect(result).toMatchObject({ total: 1, page: 1, limit: 20 });
       expect(result.data).toHaveLength(1);
     });
@@ -80,6 +87,25 @@ describe('PostController', () => {
       expect(data[0]).toMatchObject({ likesCount: 5, commentsCount: 2 });
       expect(data[0]).not.toHaveProperty('_count');
     });
+
+    it('expose l’auteur embarqué et likedByMe', async () => {
+      service.list.mockResolvedValue({
+        items: [makePost({ likes: [{ id: 'like-1' }] })],
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+
+      const { data } = await controller.getPosts({});
+
+      expect(data[0].likedByMe).toBe(true);
+      expect(data[0].author).toMatchObject({
+        keycloakId: 'user-1',
+        username: 'tester',
+        displayName: 'Testeur',
+      });
+      expect(data[0]).not.toHaveProperty('likes');
+    });
   });
 
   describe('getPost', () => {
@@ -92,6 +118,7 @@ describe('PostController', () => {
 
       expect(service.getOne).toHaveBeenCalledWith(
         'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'user-1',
       );
       expect(result).toMatchObject({ id: makePost().id, title: 'Titre' });
     });
