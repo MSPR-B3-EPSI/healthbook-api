@@ -30,6 +30,8 @@ import { DeletedResponseDto } from '../dto/common/deleted-response.dto.js';
 import { ToggleLikeResponseDto } from '../dto/common/toggle-like-response.dto.js';
 import { CommentResponseDto } from '../dto/comment/comment-response.dto.js';
 import { CommentService } from '../services/comment.service.js';
+import { CommentWithCounts } from '../repositories/comment.repository.js';
+import { StorageService } from '../storage/storage.service.js';
 
 @ApiTags('comment')
 @ApiBearerAuth()
@@ -39,6 +41,7 @@ export class CommentController {
   constructor(
     private readonly commentService: CommentService,
     private readonly currentUser: CurrentUserService,
+    private readonly storage: StorageService,
   ) {}
 
   @Get()
@@ -47,8 +50,13 @@ export class CommentController {
   async getComments(
     @Query() query: GetCommentsQueryDto,
   ): Promise<PaginatedDto<CommentResponseDto>> {
-    const { items, total, page, limit } = await this.commentService.list(query);
-    return { data: items.map(CommentResponseDto.from), total, page, limit };
+    const { keycloakId } = await this.currentUser.getDbUser();
+    const { items, total, page, limit } = await this.commentService.list(
+      query,
+      keycloakId,
+    );
+    const data = await Promise.all(items.map((item) => this.present(item)));
+    return { data, total, page, limit };
   }
 
   @Get(':id')
@@ -56,7 +64,8 @@ export class CommentController {
   async getComment(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CommentResponseDto> {
-    return CommentResponseDto.from(await this.commentService.getOne(id));
+    const { keycloakId } = await this.currentUser.getDbUser();
+    return this.present(await this.commentService.getOne(id, keycloakId));
   }
 
   @Post()
@@ -66,9 +75,7 @@ export class CommentController {
     @Body() dto: CreateCommentDTO,
   ): Promise<CommentResponseDto> {
     const { keycloakId } = await this.currentUser.getDbUser();
-    return CommentResponseDto.from(
-      await this.commentService.create(keycloakId, dto),
-    );
+    return this.present(await this.commentService.create(keycloakId, dto));
   }
 
   @Patch(':id')
@@ -78,7 +85,7 @@ export class CommentController {
     @Body() dto: UpdateCommentDTO,
   ): Promise<CommentResponseDto> {
     const { keycloakId } = await this.currentUser.getDbUser();
-    return CommentResponseDto.from(
+    return this.present(
       await this.commentService.update(id, keycloakId, dto),
     );
   }
@@ -101,5 +108,15 @@ export class CommentController {
     const { keycloakId } = await this.currentUser.getDbUser();
     await this.commentService.remove(id, keycloakId);
     return { deleted: true };
+  }
+
+  /** Maps a comment to its response shape, presigning the author avatar. */
+  private async present(
+    comment: CommentWithCounts,
+  ): Promise<CommentResponseDto> {
+    return CommentResponseDto.from(
+      comment,
+      await this.storage.presign(comment.author.profileMediaKey),
+    );
   }
 }

@@ -2,6 +2,7 @@ import { CommentController } from './comment.controller.js';
 import { CommentService } from '../services/comment.service.js';
 import { CurrentUserService } from '../auth/services/current-user.service.js';
 import { CommentWithCounts } from '../repositories/comment.repository.js';
+import { StorageService } from '../storage/storage.service.js';
 import { UserModel } from '../generated/prisma/models.js';
 
 function makeComment(
@@ -15,6 +16,13 @@ function makeComment(
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     _count: { likes: 5 },
+    author: {
+      keycloakId: 'user-1',
+      username: 'tester',
+      displayName: 'Testeur',
+      profileMediaKey: null,
+    },
+    likes: [],
     ...overrides,
   } as CommentWithCounts;
 }
@@ -23,6 +31,7 @@ describe('CommentController', () => {
   let controller: CommentController;
   let service: jest.Mocked<CommentService>;
   let currentUser: jest.Mocked<CurrentUserService>;
+  let storage: jest.Mocked<StorageService>;
 
   beforeEach(() => {
     service = {
@@ -40,13 +49,17 @@ describe('CommentController', () => {
         .mockResolvedValue({ keycloakId: 'user-1' } as UserModel),
     } as unknown as jest.Mocked<CurrentUserService>;
 
-    controller = new CommentController(service, currentUser);
+    storage = {
+      presign: jest.fn().mockResolvedValue(null),
+    } as unknown as jest.Mocked<StorageService>;
+
+    controller = new CommentController(service, currentUser, storage);
   });
 
   describe('getComments', () => {
-    it('renvoie l’enveloppe paginée et mappe _count en likesCount', async () => {
+    it('renvoie l’enveloppe paginée, mappe _count et expose auteur + likedByMe', async () => {
       service.list.mockResolvedValue({
-        items: [makeComment({ _count: { likes: 5 } })],
+        items: [makeComment({ _count: { likes: 5 }, likes: [{ id: 'l-1' }] })],
         total: 1,
         page: 1,
         limit: 20,
@@ -54,10 +67,12 @@ describe('CommentController', () => {
 
       const result = await controller.getComments({ postId: 'post-1' });
 
-      expect(service.list).toHaveBeenCalledWith({ postId: 'post-1' });
+      expect(service.list).toHaveBeenCalledWith({ postId: 'post-1' }, 'user-1');
       expect(result).toMatchObject({ total: 1, page: 1, limit: 20 });
-      expect(result.data[0]).toMatchObject({ likesCount: 5 });
+      expect(result.data[0]).toMatchObject({ likesCount: 5, likedByMe: true });
+      expect(result.data[0].author).toMatchObject({ username: 'tester' });
       expect(result.data[0]).not.toHaveProperty('_count');
+      expect(result.data[0]).not.toHaveProperty('likes');
     });
   });
 
@@ -71,6 +86,7 @@ describe('CommentController', () => {
 
       expect(service.getOne).toHaveBeenCalledWith(
         'cccccccc-cccc-cccc-cccc-cccccccccccc',
+        'user-1',
       );
       expect(result).toMatchObject({ content: 'Contenu' });
     });
