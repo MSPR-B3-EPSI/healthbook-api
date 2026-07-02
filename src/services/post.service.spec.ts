@@ -20,6 +20,13 @@ function makePost(overrides: Partial<PostWithCounts> = {}): PostWithCounts {
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     _count: { likes: 3, comments: 2 },
+    author: {
+      keycloakId: 'user-1',
+      username: 'tester',
+      displayName: null,
+      profileMediaKey: null,
+    },
+    likes: [],
     ...overrides,
   } as PostWithCounts;
 }
@@ -59,11 +66,14 @@ describe('PostService', () => {
 
       const result = await service.create('user-1', dto);
 
-      expect(repo.create).toHaveBeenCalledWith({
-        title: 'T',
-        content: 'C',
-        author: { connect: { keycloakId: 'user-1' } },
-      });
+      expect(repo.create).toHaveBeenCalledWith(
+        {
+          title: 'T',
+          content: 'C',
+          author: { connect: { keycloakId: 'user-1' } },
+        },
+        'user-1',
+      );
       expect(result).toBe(created);
     });
   });
@@ -74,9 +84,9 @@ describe('PostService', () => {
       repo.findManyWithCounts.mockResolvedValue(items);
       repo.count.mockResolvedValue(1);
 
-      const result = await service.list({});
+      const result = await service.list({}, 'user-1');
 
-      expect(repo.findManyWithCounts).toHaveBeenCalledWith({
+      expect(repo.findManyWithCounts).toHaveBeenCalledWith('user-1', {
         skip: 0,
         take: 20,
         where: {},
@@ -90,9 +100,9 @@ describe('PostService', () => {
       repo.findManyWithCounts.mockResolvedValue([]);
       repo.count.mockResolvedValue(0);
 
-      await service.list({ page: 3, limit: 10, authorId: 'user-9' });
+      await service.list({ page: 3, limit: 10, authorId: 'user-9' }, 'user-1');
 
-      expect(repo.findManyWithCounts).toHaveBeenCalledWith({
+      expect(repo.findManyWithCounts).toHaveBeenCalledWith('user-1', {
         skip: 20,
         take: 10,
         where: { authorId: 'user-9' },
@@ -105,13 +115,16 @@ describe('PostService', () => {
       repo.findManyWithCounts.mockResolvedValue([]);
       repo.count.mockResolvedValue(0);
 
-      await service.list({
-        search: 'Vaccin',
-        sortBy: PostSortBy.Likes,
-        sortOrder: SortOrder.Asc,
-      });
+      await service.list(
+        {
+          search: 'Vaccin',
+          sortBy: PostSortBy.Likes,
+          sortOrder: SortOrder.Asc,
+        },
+        'user-1',
+      );
 
-      expect(repo.findManyWithCounts).toHaveBeenCalledWith({
+      expect(repo.findManyWithCounts).toHaveBeenCalledWith('user-1', {
         skip: 0,
         take: 20,
         where: {
@@ -130,13 +143,13 @@ describe('PostService', () => {
       const post = makePost();
       repo.findUniqueWithCounts.mockResolvedValue(post);
 
-      await expect(service.getOne(post.id)).resolves.toBe(post);
+      await expect(service.getOne(post.id, 'user-1')).resolves.toBe(post);
     });
 
     it('lève NotFoundException si absent', async () => {
       repo.findUniqueWithCounts.mockResolvedValue(null);
 
-      await expect(service.getOne('missing')).rejects.toBeInstanceOf(
+      await expect(service.getOne('missing', 'user-1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
@@ -152,10 +165,11 @@ describe('PostService', () => {
 
       const result = await service.update(post.id, 'user-1', dto);
 
-      expect(repo.update).toHaveBeenCalledWith(post.id, {
-        title: 'Nouveau',
-        content: undefined,
-      });
+      expect(repo.update).toHaveBeenCalledWith(
+        post.id,
+        { title: 'Nouveau', content: undefined },
+        'user-1',
+      );
       expect(result).toBe(updated);
     });
 
@@ -245,9 +259,11 @@ describe('PostService', () => {
       const result = await service.setMedia(post.id, 'user-1', file);
 
       expect(storage.put).toHaveBeenCalledWith(file);
-      expect(repo.update).toHaveBeenCalledWith(post.id, {
-        mediaKey: 'posts/new.png',
-      });
+      expect(repo.update).toHaveBeenCalledWith(
+        post.id,
+        { mediaKey: 'posts/new.png' },
+        'user-1',
+      );
       expect(storage.delete).not.toHaveBeenCalled();
       expect(result).toBe(updated);
     });
@@ -284,7 +300,11 @@ describe('PostService', () => {
 
       const result = await service.clearMedia(post.id, 'user-1');
 
-      expect(repo.update).toHaveBeenCalledWith(post.id, { mediaKey: null });
+      expect(repo.update).toHaveBeenCalledWith(
+        post.id,
+        { mediaKey: null },
+        'user-1',
+      );
       expect(storage.delete).toHaveBeenCalledWith('posts/x.png');
       expect(result).toBe(updated);
     });

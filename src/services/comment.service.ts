@@ -28,16 +28,22 @@ export class CommentService {
     authorId: string,
     dto: CreateCommentDTO,
   ): Promise<CommentWithCounts> {
-    const post = await this.postRepo.findUniqueWithCounts(dto.postId);
+    const post = await this.postRepo.findUniqueWithCounts(dto.postId, authorId);
     if (!post) throw new NotFoundException('Post introuvable');
-    return this.commentRepo.create({
-      content: dto.content,
-      post: { connect: { id: dto.postId } },
-      author: { connect: { keycloakId: authorId } },
-    });
+    return this.commentRepo.create(
+      {
+        content: dto.content,
+        post: { connect: { id: dto.postId } },
+        author: { connect: { keycloakId: authorId } },
+      },
+      authorId,
+    );
   }
 
-  async list(query: GetCommentsQueryDto): Promise<{
+  async list(
+    query: GetCommentsQueryDto,
+    userId: string,
+  ): Promise<{
     items: CommentWithCounts[];
     total: number;
     page: number;
@@ -52,7 +58,7 @@ export class CommentService {
     );
 
     const [items, total] = await Promise.all([
-      this.commentRepo.findManyWithCounts({
+      this.commentRepo.findManyWithCounts(userId, {
         skip: (page - 1) * limit,
         take: limit,
         where,
@@ -91,8 +97,8 @@ export class CommentService {
     }
   }
 
-  async getOne(id: string): Promise<CommentWithCounts> {
-    const comment = await this.commentRepo.findUniqueWithCounts(id);
+  async getOne(id: string, userId: string): Promise<CommentWithCounts> {
+    const comment = await this.commentRepo.findUniqueWithCounts(id, userId);
     if (!comment) throw new NotFoundException('Commentaire introuvable');
     return comment;
   }
@@ -103,7 +109,7 @@ export class CommentService {
     dto: UpdateCommentDTO,
   ): Promise<CommentWithCounts> {
     await this.assertOwner(id, userId);
-    return this.commentRepo.update(id, { content: dto.content });
+    return this.commentRepo.update(id, { content: dto.content }, userId);
   }
 
   async remove(id: string, userId: string): Promise<void> {
@@ -116,7 +122,7 @@ export class CommentService {
     id: string,
     userId: string,
   ): Promise<{ liked: boolean; likesCount: number }> {
-    const comment = await this.commentRepo.findUniqueWithCounts(id);
+    const comment = await this.commentRepo.findUniqueWithCounts(id, userId);
     if (!comment) throw new NotFoundException('Commentaire introuvable');
 
     const existing = await this.commentRepo.findLike(userId, id);
@@ -132,7 +138,7 @@ export class CommentService {
     id: string,
     userId: string,
   ): Promise<CommentWithCounts> {
-    const comment = await this.commentRepo.findUniqueWithCounts(id);
+    const comment = await this.commentRepo.findUniqueWithCounts(id, userId);
     if (!comment) throw new NotFoundException('Commentaire introuvable');
     if (comment.authorId !== userId) {
       throw new ForbiddenException(

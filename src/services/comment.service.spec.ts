@@ -23,6 +23,13 @@ function makeComment(
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     _count: { likes: 3 },
+    author: {
+      keycloakId: 'user-1',
+      username: 'tester',
+      displayName: null,
+      profileMediaKey: null,
+    },
+    likes: [],
     ...overrides,
   } as CommentWithCounts;
 }
@@ -61,11 +68,14 @@ describe('CommentService', () => {
 
       const result = await service.create('user-1', dto);
 
-      expect(repo.create).toHaveBeenCalledWith({
-        content: 'C',
-        post: { connect: { id: 'post-1' } },
-        author: { connect: { keycloakId: 'user-1' } },
-      });
+      expect(repo.create).toHaveBeenCalledWith(
+        {
+          content: 'C',
+          post: { connect: { id: 'post-1' } },
+          author: { connect: { keycloakId: 'user-1' } },
+        },
+        'user-1',
+      );
       expect(result).toBe(created);
     });
 
@@ -85,9 +95,9 @@ describe('CommentService', () => {
       repo.findManyWithCounts.mockResolvedValue(items);
       repo.count.mockResolvedValue(1);
 
-      const result = await service.list({ postId: 'post-1' });
+      const result = await service.list({ postId: 'post-1' }, 'user-1');
 
-      expect(repo.findManyWithCounts).toHaveBeenCalledWith({
+      expect(repo.findManyWithCounts).toHaveBeenCalledWith('user-1', {
         skip: 0,
         take: 20,
         where: { postId: 'post-1' },
@@ -101,16 +111,19 @@ describe('CommentService', () => {
       repo.findManyWithCounts.mockResolvedValue([]);
       repo.count.mockResolvedValue(0);
 
-      await service.list({
-        postId: 'post-1',
-        search: 'Bravo',
-        sortBy: CommentSortBy.Likes,
-        sortOrder: SortOrder.Asc,
-        page: 2,
-        limit: 10,
-      });
+      await service.list(
+        {
+          postId: 'post-1',
+          search: 'Bravo',
+          sortBy: CommentSortBy.Likes,
+          sortOrder: SortOrder.Asc,
+          page: 2,
+          limit: 10,
+        },
+        'user-1',
+      );
 
-      expect(repo.findManyWithCounts).toHaveBeenCalledWith({
+      expect(repo.findManyWithCounts).toHaveBeenCalledWith('user-1', {
         skip: 10,
         take: 10,
         where: {
@@ -127,13 +140,13 @@ describe('CommentService', () => {
       const comment = makeComment();
       repo.findUniqueWithCounts.mockResolvedValue(comment);
 
-      await expect(service.getOne(comment.id)).resolves.toBe(comment);
+      await expect(service.getOne(comment.id, 'user-1')).resolves.toBe(comment);
     });
 
     it('lève NotFoundException si absent', async () => {
       repo.findUniqueWithCounts.mockResolvedValue(null);
 
-      await expect(service.getOne('missing')).rejects.toBeInstanceOf(
+      await expect(service.getOne('missing', 'user-1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
@@ -150,9 +163,11 @@ describe('CommentService', () => {
         content: 'Nouveau',
       });
 
-      expect(repo.update).toHaveBeenCalledWith(comment.id, {
-        content: 'Nouveau',
-      });
+      expect(repo.update).toHaveBeenCalledWith(
+        comment.id,
+        { content: 'Nouveau' },
+        'user-1',
+      );
       expect(result).toBe(updated);
     });
 

@@ -59,7 +59,11 @@ export class PostController {
   async getPosts(
     @Query() query: GetPostsQueryDto,
   ): Promise<PaginatedDto<PostResponseDto>> {
-    const { items, total, page, limit } = await this.postService.list(query);
+    const { keycloakId } = await this.currentUser.getDbUser();
+    const { items, total, page, limit } = await this.postService.list(
+      query,
+      keycloakId,
+    );
     const data = await Promise.all(items.map((item) => this.present(item)));
     return { data, total, page, limit };
   }
@@ -69,7 +73,8 @@ export class PostController {
   async getPost(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<PostResponseDto> {
-    return this.present(await this.postService.getOne(id));
+    const { keycloakId } = await this.currentUser.getDbUser();
+    return this.present(await this.postService.getOne(id, keycloakId));
   }
 
   @Post()
@@ -156,11 +161,12 @@ export class PostController {
     return { deleted: true };
   }
 
-  /** Maps an entity to its response shape, resolving media to a presigned URL. */
+  /** Maps an entity to its response shape, presigning media + author avatar. */
   private async present(post: PostWithCounts): Promise<PostResponseDto> {
-    return PostResponseDto.from(
-      post,
-      await this.storage.presign(post.mediaKey),
-    );
+    const [mediaUrl, authorAvatarUrl] = await Promise.all([
+      this.storage.presign(post.mediaKey),
+      this.storage.presign(post.author.profileMediaKey),
+    ]);
+    return PostResponseDto.from(post, mediaUrl, authorAvatarUrl);
   }
 }

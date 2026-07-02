@@ -25,14 +25,20 @@ export class PostService {
   ) {}
 
   create(authorId: string, dto: CreatePostDto): Promise<PostWithCounts> {
-    return this.postRepo.create({
-      title: dto.title,
-      content: dto.content,
-      author: { connect: { keycloakId: authorId } },
-    });
+    return this.postRepo.create(
+      {
+        title: dto.title,
+        content: dto.content,
+        author: { connect: { keycloakId: authorId } },
+      },
+      authorId,
+    );
   }
 
-  async list(query: GetPostsQueryDto): Promise<{
+  async list(
+    query: GetPostsQueryDto,
+    userId: string,
+  ): Promise<{
     items: PostWithCounts[];
     total: number;
     page: number;
@@ -47,7 +53,7 @@ export class PostService {
     );
 
     const [items, total] = await Promise.all([
-      this.postRepo.findManyWithCounts({
+      this.postRepo.findManyWithCounts(userId, {
         skip: (page - 1) * limit,
         take: limit,
         where,
@@ -104,8 +110,8 @@ export class PostService {
     }
   }
 
-  async getOne(id: string): Promise<PostWithCounts> {
-    const post = await this.postRepo.findUniqueWithCounts(id);
+  async getOne(id: string, userId: string): Promise<PostWithCounts> {
+    const post = await this.postRepo.findUniqueWithCounts(id, userId);
     if (!post) throw new NotFoundException('Post introuvable');
     return post;
   }
@@ -116,10 +122,11 @@ export class PostService {
     dto: UpdatePostDto,
   ): Promise<PostWithCounts> {
     await this.assertOwner(id, userId);
-    return this.postRepo.update(id, {
-      title: dto.title,
-      content: dto.content,
-    });
+    return this.postRepo.update(
+      id,
+      { title: dto.title, content: dto.content },
+      userId,
+    );
   }
 
   async remove(id: string, userId: string): Promise<void> {
@@ -136,7 +143,7 @@ export class PostService {
   ): Promise<PostWithCounts> {
     const post = await this.assertOwner(id, userId);
     const key = await this.storage.put(file);
-    const updated = await this.postRepo.update(id, { mediaKey: key });
+    const updated = await this.postRepo.update(id, { mediaKey: key }, userId);
     if (post.mediaKey) await this.storage.delete(post.mediaKey);
     return updated;
   }
@@ -145,7 +152,7 @@ export class PostService {
   async clearMedia(id: string, userId: string): Promise<PostWithCounts> {
     const post = await this.assertOwner(id, userId);
     if (!post.mediaKey) return post;
-    const updated = await this.postRepo.update(id, { mediaKey: null });
+    const updated = await this.postRepo.update(id, { mediaKey: null }, userId);
     await this.storage.delete(post.mediaKey);
     return updated;
   }
@@ -155,7 +162,7 @@ export class PostService {
     id: string,
     userId: string,
   ): Promise<{ liked: boolean; likesCount: number }> {
-    const post = await this.postRepo.findUniqueWithCounts(id);
+    const post = await this.postRepo.findUniqueWithCounts(id, userId);
     if (!post) throw new NotFoundException('Post introuvable');
 
     const existing = await this.postRepo.findLike(userId, id);
@@ -171,7 +178,7 @@ export class PostService {
     id: string,
     userId: string,
   ): Promise<PostWithCounts> {
-    const post = await this.postRepo.findUniqueWithCounts(id);
+    const post = await this.postRepo.findUniqueWithCounts(id, userId);
     if (!post) throw new NotFoundException('Post introuvable');
     if (post.authorId !== userId) {
       throw new ForbiddenException("Vous n'êtes pas l'auteur de ce post");
